@@ -1,0 +1,625 @@
+<html>
+<body>
+<canvas id="pic" style="position:absolute;left:0px;top:0px;" width="4096px" height="2304px"></canvas>
+<script>
+	var canvas;
+	var ctx;
+	var img = new Image();
+	var imgdata;
+	var x0;
+	var y0;
+	var x1;
+	var y1;
+	var dir;
+	var dist;
+	var ss;
+	var color0 = [];
+	var shape = [];
+	var bbox = [65536,65536,0,0];
+	onload = function()
+	{
+		canvas = document.getElementById("pic");
+		ctx = canvas.getContext("2d");
+		img.src = "raritydashserendipity.png";
+		canvas.onclick = function(e)
+		{
+			x0 = e.layerX;
+			y0 = e.layerY;
+			dir = 0;
+			shape = [];
+			var color1 = color0[y0][x0];
+			while(x0 > 0 && color1.toString() == color0[y0][x0-1].toString())
+			{
+				x0--;
+				color1 = color0[y0][x0];
+			}
+			x1 = x0;
+			y1 = y0;
+			requestAnimationFrame(traceme);
+		}
+	}
+	img.onload = function()
+	{
+		ctx.drawImage(img,0,0);
+		var id = ctx.getImageData(0,0,4096,2304).data;
+		var i = 0;
+		for(var y = 0; y < 2304; y++)
+		{
+			color0[y] = [];
+			for(var x = 0; x < 4096; x++)
+			{
+				color0[y][x] = [id[i],id[i+1],id[i+2],id[i+3]];
+				i += 4;
+			}
+		}
+	}
+	var traceme = function()
+	{
+		if(dir == 0)
+		{	// up
+			if(x1 > 0 && color0[y1][x1-1].toString() == color0[y0][x0].toString())
+			{
+				dir = 3;
+				x1--;
+			}
+			else if(y1 > 0 && color0[y1-1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 0;
+				y1--;
+			}
+			else if(x1 < 4096 && color0[y1][x1+1].toString() == color0[y0][x0].toString())
+			{
+				dir = 1;
+				x1++;
+			}
+			else
+			{
+				dir = 2;
+				y1++;
+			}
+		}
+		else if(dir == 1)
+		{	// right
+			if(y1 > 0 && color0[y1-1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 0;
+				y1--;
+			}
+			else if(x1 < 4096 && color0[y1][x1+1].toString() == color0[y0][x0].toString())
+			{
+				dir = 1;
+				x1++;
+			}
+			else if(y1 < 2304 && color0[y1+1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 2;
+				y1++;
+			}
+			else
+			{
+				dir = 3;
+				x1--;
+			}
+		}
+		else if(dir == 2)
+		{	// down
+			if(x1 < 4096 && color0[y1][x1+1].toString() == color0[y0][x0].toString())
+			{
+				dir = 1;
+				x1++;
+			}
+			else if(y1 < 2304 && color0[y1+1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 2;
+				y1++;
+			}
+			else if(x1 > 0 && color0[y1][x1-1].toString() == color0[y0][x0].toString())
+			{
+				dir = 3;
+				x1--;
+			}
+			else
+			{
+				dir = 0;
+				y1--;
+			}
+		}
+		else if(dir == 3)
+		{	// left
+			if(y1 < 2304 && color0[y1+1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 2;
+				y1++;
+			}
+			else if(x1 > 0 && color0[y1][x1-1].toString() == color0[y0][x0].toString())
+			{
+				dir = 3;
+				x1--;
+			}
+			else if(y1 > 0 && color0[y1-1][x1].toString() == color0[y0][x0].toString())
+			{
+				dir = 0;
+				y1--;
+			}
+			else
+			{
+				dir = 1
+				x1++;
+			}
+		}
+		shape.push([x1,y1]);
+/*		var pix = document.createElement("div");
+		pix.style.backgroundColor = "#0000FF";
+		pix.style.position = "absolute";
+		pix.style.left = x1 + "px";
+		pix.style.top = y1 + "px";
+		pix.style.width = "1px";
+		pix.style.height = "1px";
+		document.body.appendChild(pix);*/
+		ctx.fillStyle = "rgb(0,0,255)";
+		ctx.fillRect(x1,y1,1,1);
+		if(x1 == x0 && y1 == y0)
+		{
+			console.log(shape);
+			for(var i = 0; i < shape.length; i++)
+			{
+				if(shape[i][0] < bbox[0])
+					bbox[0] = shape[i][0];
+				if(shape[i][0] > bbox[2])
+					bbox[2] = shape[i][0];
+				if(shape[i][1] < bbox[1])
+					bbox[1] = shape[i][1];
+				if(shape[i][1] > bbox[3])
+					bbox[3] = shape[i][1];
+			}
+
+			ss = 0;
+			requestAnimationFrame(stickouts);
+		}
+		else
+		{
+			//requestAnimationFrame(traceme);
+			traceme();
+		}
+	}
+	var stickouts = function()
+	{
+		x0 = shape[ss][0];
+		y0 = shape[ss][1];
+		x1 = x0;
+		y1 = y0;
+		dir = [0,0];
+		var mat9 = [];
+		if(color0[y0-1] == undefined)
+			mat9[0] = false;
+		else if(color0[y0-1][x0-1] == undefined)
+			mat9[0] = false;
+		else if(color0[y0-1][x0-1].toString() != color0[y0][x0].toString())
+			mat9[0] = false;
+		else
+			mat9[0] = true;
+
+		if(color0[y0-1] == undefined)
+			mat9[1] = false;
+		else if(color0[y0-1][x0] == undefined)
+			mat9[1] = false;
+		else if(color0[y0-1][x0].toString() != color0[y0][x0].toString())
+			mat9[1] = false;
+		else
+			mat9[1] = true;
+
+		if(color0[y0-1] == undefined)
+			mat9[2] = false;
+		else if(color0[y0-1][x0+1] == undefined)
+			mat9[2] = false;
+		else if(color0[y0-1][x0+1].toString() != color0[y0][x0].toString())
+			mat9[2] = false;
+		else
+			mat9[2] = true;
+
+		if(color0[y0][x0-1] == undefined)
+			mat9[3] = false;
+		else if(color0[y0][x0-1].toString() != color0[y0][x0].toString())
+			mat9[3] = false;
+		else
+			mat9[3] = true;
+
+		if(color0[y0][x0+1] == undefined)
+			mat9[5] = false;
+		else if(color0[y0][x0+1].toString() != color0[y0][x0].toString())
+			mat9[5] = false;
+		else
+			mat9[5] = true;
+
+		if(color0[y0+1] == undefined)
+			mat9[6] = false;
+		if(color0[y0+1][x0-1] == undefined)
+			mat9[6] = false;
+		else if(color0[y0+1][x0-1].toString() != color0[y0][x0].toString())
+			mat9[6] = false;
+		else
+			mat9[6] = true;
+
+		if(color0[y0+1] == undefined)
+			mat9[7] = false;
+		else if(color0[y0+1][x0] == undefined)
+			mat9[7] = false;
+		else if(color0[y0+1][x0].toString() != color0[y0][x0].toString())
+			mat9[7] = false;
+		else
+			mat9[7] = true;
+
+		if(color0[y0+1] == undefined)
+			mat9[8] = false;
+		else if(color0[y0+1][x0+1] == undefined)
+			mat9[8] = false;
+		else if(color0[y0+1][x0+1].toString() != color0[y0][x0].toString())
+			mat9[8] = false;
+		else
+			mat9[8] = true;
+
+
+		if(mat9[0] == true &&	mat9[1] == false &&	mat9[2] == true		// OXO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		                   &&	mat9[7] == true)				//  O 
+		{	// S
+			dir = [0,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == false &&	mat9[2] == false	// XXX
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		                    &&	mat9[7] == true)				//  O 
+		{	// S
+			dir = [0,1];
+		} else
+		if(			mat9[1] == false				//  X 
+		&& mat9[3] == false		&&		mat9[5] == false	// X·X
+		                    &&	mat9[7] == true)				//  O 
+		{	// S
+			dir = [0,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == false &&	mat9[2] == true		// XXO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		                    &&	mat9[7] == true &&	mat9[8] == true)	//  OO
+		{	// SSE
+			dir = [0.5,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == false &&	mat9[2] == true		// XXO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		                    &&	mat9[7] == true &&	mat9[8] == false)	//  OX
+		{	// S
+			dir = [0,1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == false &&	mat9[2] == false	// OXX
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true &&	mat9[7] == true)				// OO 
+		{	// SSW
+			dir = [-0.5,1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == false &&	mat9[2] == false	// OXX
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == false &&	mat9[7] == true)				// XO 
+		{	// S
+			dir = [0,1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == false				// OX 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SW
+			dir = [-1,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == false				// XX 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == false)	// OOX
+		{	// SW
+			dir = [-1,1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == false	// OOX
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SW
+			dir = [-1,1];
+		} else
+		if(			mat9[1] == false &&	mat9[2] == true		//  XO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SE
+			dir = [1,1];
+		} else
+		if(			mat9[1] == false &&	mat9[2] == false	//  XX
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true &&	mat9[8] == true)	// XOO
+		{	// SE
+			dir = [1,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true &&	mat9[1] == true		// XOO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SE
+			dir = [1,1];
+		} else
+
+		if(		   	mat9[1] == true 				//  O 
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true &&	mat9[7] == false &&	mat9[8] == true)	// OXO
+		{	// N
+			dir = [0,-1];
+		} else
+		if(		   	mat9[1] == true 				//  O 
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == false &&	mat9[7] == false &&	mat9[8] == false)	// XXX
+		{	// N
+			dir = [0,-1];
+		} else
+		if(		   	mat9[1] == true 				//  O 
+		&& mat9[3] == false		&&		mat9[5] == false	// X·X
+				   &&	mat9[7] == false)				//  X 
+		{	// N
+			dir = [0,-1];
+		} else
+		if(			mat9[1] == true &&	mat9[2] == true		//  OO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == false &&	mat9[7] == false &&	mat9[8] == true)	// XXO
+		{	// NNE
+			dir = [0.5,-1];
+		} else
+		if(			mat9[1] == true &&	mat9[2] == false	//  OX
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == false &&	mat9[7] == false &&	mat9[8] == true)	// XXO
+		{	// N
+			dir = [0,-1];
+		} else
+		if(mat9[0] == true  &&	mat9[1] == true					// OO 
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true  &&	mat9[7] == false &&	mat9[8] == false)	// OXX
+		{	// NNW
+			dir = [-0.5,-1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true					// XO 
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true  &&	mat9[7] == false &&	mat9[8] == false)	// OXX
+		{	// N
+			dir = [0,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == false)				// OX 
+		{	// NW
+			dir = [-1,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == false	// OOX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == false &&	mat9[7] == false)				// XX 
+		{	// NW
+			dir = [-1,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == false)	// OOX
+		{	// NW
+			dir = [-1,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				   &&	mat9[7] == false &&	mat9[8] == true)	//  XO
+		{	// NE
+			dir = [1,-1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true &&	mat9[1] == true		// XOO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				   &&	mat9[7] == false &&	mat9[8] == false)	//  XX
+		{	// NE
+			dir = [1,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == true		// O·O
+		&& mat9[6] == false &&	mat9[7] == true &&	mat9[8] == true)	// XOO
+		{	// NE
+			dir = [1,-1];
+		} else
+
+		if(mat9[0] == true &&	mat9[1] == true					// OO 
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == true &&	mat9[7] == true)				// OO 
+		{	// E
+			dir = [1,0];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true					// XO 
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true)				// XO 
+		{	// E
+			dir = [1,0];
+		} else
+		if(			mat9[1] == false				//  X 
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				    &&	mat9[7] == false)				//  X 
+		{	// E
+			dir = [1,0];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true)				// XO 
+		{	// NEE
+			dir = [1,-0.5];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true					// XO 
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SEE
+			dir = [1,0.5];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == false	// OOX
+		&& mat9[3] == true		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true)				// XO 
+		{	// E
+			dir = [1,0];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true					// XO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == false)	// OOX 
+		{	// E
+			dir = [1,0];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true &&	mat9[1] == true		// XOO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				    &&	mat9[7] == false &&	mat9[8] == true)	//  XO
+		{	// NEE
+			dir = [1,-0.5];
+		} else
+		if(		  	mat9[1] == false &&	mat9[1] == true		//  XO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true &&	mat9[8] == true)	// XOO
+		{	// SEE
+			dir = [1,0.5];
+		} else
+
+		if(			mat9[1] == true &&	mat9[1] == true		//  OO
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+				   &&	mat9[7] == true &&	mat9[8] == true)	//  OO
+		{	// W
+			dir = [-1,0];
+		} else
+		if(			mat9[1] == true &&	mat9[1] == false	//  OX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+				   &&	mat9[7] == true &&	mat9[8] == false)	//  OX
+		{	// W
+			dir = [-1,0];
+		} else
+		if(			mat9[1] == false				//  X 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+				   &&	mat9[7] == false)				//  X 
+		{	// W
+			dir = [-1,0];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+				   &&	mat9[7] == true &&	mat9[8] == false)	//  OX
+		{	// NWW
+			dir = [-1,-0.5];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true &&	mat9[1] == true		// XOO
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+				   &&	mat9[7] == true &&	mat9[8] == false)	//  OX
+		{	// W
+			dir = [-1,0];
+		} else
+		if(			mat9[1] == true &&	mat9[1] == false	//  OX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true  &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SWW
+			dir = [-1,0.5];
+		} else
+		if(			mat9[1] == true &&	mat9[1] == false	//  OX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == false &&	mat9[7] == true &&	mat9[8] == true)	// XOO
+		{	// W
+			dir = [-1,0];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == false	// OOX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == false)				// OX 
+		{	// NWW
+			dir = [-1,-0.5];
+		} else
+		if(mat9[0] == true &&	mat9[1] == false				// OX 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == false)	// OOX
+		{	// SWW
+			dir = [-1,0.5];
+		} else
+
+		if(			mat9[1] == false &&	mat9[1] == false	//  XX
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SSE
+			dir = [0.5,1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == false 				// XX 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == true)	// OOO
+		{	// SSW
+			dir = [-0.5,1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				   &&	mat9[7] == false &&	mat9[8] == false)	//  XX
+		{	// NNE
+			dir = [0.5,-1];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == true		// OOO
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == false &&	mat9[7] == false)				// XX 
+		{	// NNW
+			dir = [0.5,-1];
+		} else
+		if(mat9[0] == false &&	mat9[1] == true &&	mat9[1] == true		// XOO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+				   &&	mat9[7] == false &&	mat9[8] == true)	//  XO
+		{	// NEE
+			dir = [1,-0.5];
+		} else
+		if(			mat9[1] == false &&	mat9[1] == true		//  XO
+		&& mat9[3] == false		&&		mat9[5] == true		// X·O
+		&& mat9[6] == false &&	mat9[7] == true &&	mat9[8] == true)	// XOO
+		{	// SEE
+			dir = [1,0.5];
+		} else
+		if(mat9[0] == true &&	mat9[1] == true &&	mat9[1] == false	// OOX
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == false)				// OX 
+		{	// NWW
+			dir = [-1,-0.5];
+		} else
+		if(mat9[0] == true &&	mat9[1] == false				// OX 
+		&& mat9[3] == true		&&		mat9[5] == false	// O·X
+		&& mat9[6] == true &&	mat9[7] == true &&	mat9[8] == false)	// OOX
+		{	// SWW
+			dir = [-1,0.5];
+		}
+
+		if(dir[0] != 0 || dir[1] != 0)
+		{
+			dist = 0;
+			while(x1 > 0 && x1 < 4096 && y1 > 0 && y1 < 2304 && color0[Math.floor(y1)][Math.floor(x1)].toString() == color0[y0][x0].toString())
+			{
+				dist++;
+				x1+=dir[0];
+				y1+=dir[1];
+			}
+			if(dist > 1)
+			{
+				x1 = x0;
+				y1 = y0;
+				var gr = 0;
+				for(var i = 0; i < dist/2; i++)
+				{
+					x1+=dir[0];
+					y1+=dir[1];
+					gr = Math.floor((i/(dist/2)) * 256);
+					ctx.fillStyle = "rgb(0," + gr + ",255)";
+					ctx.fillRect(x1,y1,1,1);
+				}
+				for(var i = 0; i < dist/2; i++)
+				{
+					x1+=dir[0];
+					y1+=dir[1];
+					gr = Math.floor((i/(dist/2)) * 256);
+					ctx.fillStyle = "rgb(0," + (256-gr) + ",255)";
+					ctx.fillRect(x1,y1,1,1);
+				}
+			}
+		}
+		ss++;
+		if(ss < shape.length)
+			requestAnimationFrame(stickouts);
+			//stickouts();
+	}
+
+
+
+
+
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<html>
+<body>
+<canvas id="pic" style="position:absolute;left:0px;top:0px;" width="4096px" height="2304px"></canvas>
+<table id="prg" style="position:absolute;width:40px;height:40px;background-color:black;border-width:3px;border-radius:5px;border-style:ridge;font-weight:bold;color:white;display:none;"><tr><td>00%</td></tr></table>
+<script>
+	var canvas;
+	var ctx;
+	var img = new Image();
+	var imgdata;
+	var x0;
+	var y0;
+	var x1;
+	var y1;
+	var dir;
+	var color0 = [];
+	var dist = [];
+	var progress;
+	onload = function()
+	{
+		progress = document.getElementById("prg");
+		canvas = document.getElementById("pic");
+		ctx = canvas.getContext("2d");
+		img.src = "coverB.png";
+		canvas.onclick = function(e)
+		{
+			x0 = e.layerX;
+			y0 = e.layerY;
+			progress.style.display = "block";
+			progress.style.left = x0 + "px";
+			progress.style.top = y0 + "px";
+			dir = 0;
+			fstep();
+		}
+	}
+	img.onload = function()
+	{
+		ctx.drawImage(img,0,0);
+		var id = ctx.getImageData(0,0,4096,2304).data;
+		var i = 0;
+		for(var y = 0; y < 2304; y++)
+		{
+			color0[y] = [];
+			for(var x = 0; x < 4096; x++)
+			{
+				color0[y][x] = [id[i],id[i+1],id[i+2],id[i+3]];
+				i += 4;
+			}
+		}
+	}
+	function fstep()
+	{
+		for(var c = 0; c < 300; c++)
+		{
+			x1 = x0;
+			y1 = y0;
+			var angle = (dir - 90) / 180 * Math.PI;
+			while(x1>0 && x1<4096 && y1>0 && y1<2304 && color0[Math.floor(y1)][Math.floor(x1)].toString() == color0[y0][x0].toString())
+			{
+				x1 += Math.cos(angle);
+				y1 += Math.sin(angle);
+			}
+			dist[dir*10] = Math.sqrt( ((x0-x1)*(x0-x1)) + ((y0-y1)*(y0-y1)) );
+			dir+=0.1;
+		}
+		progress.innerHTML = "<tr><td>" + Math.floor((dir/360)*50) + "%</td></tr>"
+		if(dir < 360)
+		{
+			setTimeout(fstep);
+		}
+		else
+		{
+			dir = 0;
+			setTimeout(sstep);
+		}
+	}
+	function sstep()
+	{
+		for(var c = 0; c < 300; c++)
+		{
+			x1 = x0;
+			y1 = y0;
+			var r0 = 172;
+			var g0 = 255;
+			var b0 = 240;
+			var r2 = 0;
+			var g2 = 203;
+			var b2 = 203;
+			var angle = (dir - 90) / 180 * Math.PI;
+			for(var i=0; i<dist[dir*10]; i++)
+			{
+				var r1 = r0 + ((r2-r0) * (i/dist[dir*10]));
+				var g1 = g0 + ((g2-g0) * (i/dist[dir*10]));
+				var b1 = b0 + ((b2-b0) * (i/dist[dir*10]));
+				ctx.fillStyle = "rgb(" + r1 + "," + g1 + "," + b1 + ")";
+				ctx.fillRect(x1,y1,1,1);
+				x1 += Math.cos(angle);
+				y1 += Math.sin(angle);
+			}
+			dir += 0.1;
+		}
+		progress.innerHTML = "<tr><td>" + Math.floor(50+(dir/360)*50) + "%</td></tr>"
+		if(dir < 360)
+		{
+			setTimeout(sstep);
+		}
+		else
+		{
+			dir = 0;
+			progress.style.display = "none";
+		}
+	}
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
